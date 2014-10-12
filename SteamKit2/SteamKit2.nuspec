@@ -19,8 +19,10 @@
         </dependencies>
     </metadata>
     <files>
-        <file src="SteamKit2\bin\Release\SteamKit2.dll" target="lib\net40\SteamKit2.dll" />
-        <file src="SteamKit2\bin\Release\SteamKit2.xml" target="lib\net40\SteamKit2.xml" />
-        <file src="SteamKit2\bin\Release\readme.txt" target="readme.txt" />
+        <file src="SteamKit2\bin\Release\net40\SteamKit2.dll" target="lib\net40\SteamKit2.dll" />
+        <file src="SteamKit2\bin\Release\net40\SteamKit2.xml" target="lib\net40\SteamKit2.xml" />
+        <file src="SteamKit2\bin\Release\net45\SteamKit2.dll" target="lib\net45\SteamKit2.dll" />
+        <file src="SteamKit2\bin\Release\net45\SteamKit2.xml" target="lib\net45\SteamKit2.xml" />
+        <file src="SteamKit2\changes.txt" target="readme.txt" />
     </files>
 </package>
