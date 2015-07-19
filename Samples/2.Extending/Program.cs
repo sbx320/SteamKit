@@ -57,14 +57,14 @@ namespace Sample2_Extending
             // register a few callbacks we're interested in
             // these are registered upon creation to a callback manager, which will then route the callbacks
             // to the functions specified
-            new Callback<SteamClient.ConnectedCallback>( OnConnected, manager );
-            new Callback<SteamClient.DisconnectedCallback>( OnDisconnected, manager );
+            manager.Subscribe<SteamClient.ConnectedCallback>( OnConnected );
+            manager.Subscribe<SteamClient.DisconnectedCallback>( OnDisconnected );
 
-            new Callback<SteamUser.LoggedOnCallback>( OnLoggedOn, manager );
-            new Callback<SteamUser.LoggedOffCallback>( OnLoggedOff, manager );
+            manager.Subscribe<SteamUser.LoggedOnCallback>( OnLoggedOn );
+            manager.Subscribe<SteamUser.LoggedOffCallback>( OnLoggedOff );
 
             // handle our own custom callback
-            new Callback<MyHandler.MyCallback>( OnMyCallback, manager );
+            manager.Subscribe<MyHandler.MyCallback>( OnMyCallback );
 
             isRunning = true;
 
