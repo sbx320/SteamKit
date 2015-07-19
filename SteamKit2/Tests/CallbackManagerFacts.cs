@@ -32,7 +32,7 @@ namespace Tests
                 didCall = true;
             };
 
-            using (new Callback<CallbackForTest>(action, mgr))
+            using (mgr.Subscribe<CallbackForTest>(action))
             {
                 PostAndRunCallback(callback);
             }
@@ -54,7 +54,7 @@ namespace Tests
                 didCall = true;
             };
 
-            using (new Callback<CallbackMsg>(action, mgr))
+            using (mgr.Subscribe<CallbackMsg>(action))
             {
                 PostAndRunCallback(callback);
             }
@@ -76,7 +76,7 @@ namespace Tests
                 didCall = true;
             };
 
-            using (new Callback<CallbackForTest>(action, mgr, JobID.Invalid))
+            using (mgr.Subscribe<CallbackForTest>(action, JobID.Invalid))
             {
                 PostAndRunCallback(callback);
             }
@@ -98,7 +98,7 @@ namespace Tests
                 didCall = true;
             };
 
-            using (new Callback<CallbackForTest>(action, mgr))
+            using (mgr.Subscribe<CallbackForTest>(action))
             {
                 PostAndRunCallback(callback);
             }
@@ -118,7 +118,7 @@ namespace Tests
                 didCall = true;
             };
 
-            using (new Callback<CallbackForTest>(action, mgr, new JobID(123)))
+            using (mgr.Subscribe<CallbackForTest>(action, new JobID(123)))
             {
                 PostAndRunCallback(callback);
             }
@@ -140,7 +140,7 @@ namespace Tests
                 didCall = true;
             };
 
-            using (new Callback<CallbackForTest>(action, mgr, new JobID(123456)))
+            using (mgr.Subscribe<CallbackForTest>(action, new JobID(123456)))
             {
                 PostAndRunCallback(callback);
             }
