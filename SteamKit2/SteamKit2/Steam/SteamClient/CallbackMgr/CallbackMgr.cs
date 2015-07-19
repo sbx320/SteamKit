@@ -10,24 +10,21 @@ using System.Collections.Generic;
 
 namespace SteamKit2
 {
-    namespace Internal
+    /// <summary>
+    /// This is the base class for the utility <see cref="Callback&lt;TCall&gt;" /> class.
+    /// This is for internal use only, and shouldn't be used directly.
+    /// </summary>
+    abstract class CallbackBase
     {
-        /// <summary>
-        /// This is the base class for the utility <see cref="Callback&lt;TCall&gt;" /> class.
-        /// This is for internal use only, and shouldn't be used directly.
-        /// </summary>
-        public abstract class CallbackBase
-        {
-            internal abstract Type CallbackType { get; }
-            internal abstract void Run( object callback );
-        }
+        internal abstract Type CallbackType { get; }
+        internal abstract void Run( object callback );
     }
 
     /// <summary>
     /// This utility class is used for binding a callback to a function.
     /// </summary>
     /// <typeparam name="TCall">The callback type this instance will handle.</typeparam>
-    public class Callback<TCall> : Internal.CallbackBase, IDisposable
+    sealed class Callback<TCall> : CallbackBase
         where TCall : class, ICallbackMsg
     {
         CallbackManager mgr;
@@ -51,60 +48,12 @@ namespace SteamKit2
         /// </summary>
         /// <param name="func">The function to call when a callback of type TCall arrives.</param>
         /// <param name="mgr">The <see cref="CallbackManager"/> that is responsible for the routing of callbacks to this handler, or null if the callback will be registered manually.</param>
-        public Callback(Action<TCall> func, CallbackManager mgr = null)
-            : this ( func, mgr, JobID.Invalid )
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Callback&lt;TCall&gt;"/> class.
-        /// </summary>
-        /// <param name="func">The function to call when a callback of type TCall arrives.</param>
-        /// <param name="mgr">The <see cref="CallbackManager"/> that is responsible for the routing of callbacks to this handler, or null if the callback will be registered manually.</param>
         /// <param name="jobID">The <see cref="JobID"/>to filter matching callbacks by. Specify <see cref="P:JobID.Invalid"/> to recieve all callbacks of type TCall.</param>
-        public Callback(Action<TCall> func, CallbackManager mgr, JobID jobID)
+        public Callback(Action<TCall> func, JobID jobID)
         {
             this.JobID = jobID;
             this.OnRun = func;
-
-            AttachTo(mgr);
         }
-
-        /// <summary>
-        /// Attaches the specified <see cref="CallbackManager"/> to this handler.
-        /// </summary>
-        /// <param name="mgr">The manager to attach.</param>
-        protected void AttachTo( CallbackManager mgr )
-        {
-            if ( mgr == null )
-                return;
-
-            this.mgr = mgr;
-            mgr.Register( this );
-        }
-
-        /// <summary>
-        /// Releases unmanaged resources and performs other cleanup operations before the
-        /// <see cref="Callback&lt;TCall&gt;"/> is reclaimed by garbage collection.
-        /// </summary>
-        ~Callback()
-        {
-            Dispose();
-        }
-
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// This function will unregister the callback.
-        /// </summary>
-        public void Dispose()
-        {
-            if ( mgr != null )
-                mgr.Unregister( this );
-
-            System.GC.SuppressFinalize( this );
-        }
-
 
         internal override void Run( object callback )
         {
@@ -114,13 +63,22 @@ namespace SteamKit2
                 OnRun(cb);
             }
         }
+    }
 
-        static Action<TCall, JobID> CreateJoblessAction(Action<TCall> func)
+    sealed class UnregisterCallbackDisposable : IDisposable
+    {
+        public UnregisterCallbackDisposable(CallbackManager manager, CallbackBase callback)
         {
-            return delegate(TCall callback, JobID jobID)
-            {
-                func(callback);
-            };
+            this.manager = manager;
+            this.callback = callback;
+        }
+
+        readonly CallbackManager manager;
+        readonly CallbackBase callback;
+
+        void IDisposable.Dispose()
+        {
+            manager.Unregister(callback);
         }
     }
 
@@ -133,7 +91,7 @@ namespace SteamKit2
     {
         SteamClient client;
 
-        List<Internal.CallbackBase> registeredCallbacks;
+        List<CallbackBase> registeredCallbacks;
 
 
 
@@ -143,7 +101,7 @@ namespace SteamKit2
         /// <param name="client">The <see cref="SteamClient"/> instance to handle the callbacks of.</param>
         public CallbackManager( SteamClient client )
         {
-            registeredCallbacks = new List<Internal.CallbackBase>();
+            registeredCallbacks = new List<CallbackBase>();
 
             this.client = client;
         }
@@ -192,7 +150,7 @@ namespace SteamKit2
         /// If the specified callback is already registered, no exception is thrown.
         /// </summary>
         /// <param name="call">The callback handler to register.</param>
-        public void Register( Internal.CallbackBase call )
+        void Register( CallbackBase call )
         {
             if ( registeredCallbacks.Contains( call ) )
                 return;
@@ -205,7 +163,7 @@ namespace SteamKit2
         /// If the specified callback isn't registered, no exception is thrown.
         /// </summary>
         /// <param name="call">The callback handler to unregister.</param>
-        public void Unregister( Internal.CallbackBase call )
+        internal void Unregister( CallbackBase call )
         {
             registeredCallbacks.Remove( call );
         }
@@ -215,6 +173,34 @@ namespace SteamKit2
             registeredCallbacks
                 .FindAll( callback => callback.CallbackType.IsAssignableFrom( call.GetType() ) ) // find handlers interested in this callback
                 .ForEach( callback => callback.Run( call ) ); // run them
+        }
+
+        /// <summary>
+        /// Subscribes an action to recieve callback messages.
+        /// </summary>
+        /// <typeparam name="TCallback">The callback type this action will recieve</typeparam>
+        /// <param name="action">The action to recieve callbacks</param>
+        /// <returns>An <see cref="System.IDisposable"/> that will remove the subscription when disposed of.</returns>
+        public IDisposable Subscribe<TCallback>( Action<TCallback> action )
+            where TCallback : class, ICallbackMsg
+        {
+            return Subscribe<TCallback>( action, JobID.Invalid );
+        }
+
+        /// <summary>
+        /// Subscribes an action to recieve callback messages.
+        /// </summary>
+        /// <typeparam name="TCallback">The callback type this action will recieve</typeparam>
+        /// <param name="action">The action to recieve callbacks</param>
+        /// <param name="jobID">The <see cref="SteamKit2.JobID"/> to filter matching callbacks by.</param>
+        /// <returns>An <see cref="System.IDisposable"/> that will remove the subscription when disposed of.</returns>
+        public IDisposable Subscribe<TCallback>( Action<TCallback> action, JobID jobID )
+            where TCallback : class, ICallbackMsg
+        {
+            var callback = new Callback<TCallback>( action, jobID );
+            Register( callback );
+
+            return new UnregisterCallbackDisposable( this, callback );
         }
     }
 }
