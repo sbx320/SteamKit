@@ -12,6 +12,8 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Serialization;
+using System.Threading.Tasks;
 
 namespace SteamKit2.Internal
 {
@@ -90,6 +92,8 @@ namespace SteamKit2.Internal
 
         Dictionary<EServerType, List<IPEndPoint>> serverMap;
 
+        TaskCompletionSource<EResult> connectTaskCompletionSource;
+
 
         static CMClient()
         {
@@ -159,6 +163,14 @@ namespace SteamKit2.Internal
             }
 
             connection.Connect( cmServer, ( int )ConnectionTimeout.TotalMilliseconds );
+        }
+
+        public Task<EResult> ConnectAsync( IPEndPoint cmServer = null )
+        {
+            connectTaskCompletionSource?.SetCanceled();
+            connectTaskCompletionSource = new TaskCompletionSource<EResult>();
+            Connect(cmServer);
+            return connectTaskCompletionSource.Task;
         }
 
         /// <summary>
@@ -288,6 +300,12 @@ namespace SteamKit2.Internal
             Servers.TryMark( connection.CurrentEndPoint, ServerQuality.Good );
         }
 
+        protected void OnConnected( EResult result )
+        {
+            connectTaskCompletionSource?.SetResult( result );
+            connectTaskCompletionSource = null;
+        }
+
         void Disconnected( object sender, DisconnectedEventArgs e )
         {
             if ( !e.UserInitiated )
@@ -303,6 +321,9 @@ namespace SteamKit2.Internal
             heartBeatFunc.Stop();
 
             OnClientDisconnected( userInitiated: e.UserInitiated );
+
+            connectTaskCompletionSource?.SetException( new ConnectionFailedException( "User Initiated: " + e.UserInitiated ) );
+            connectTaskCompletionSource = null;
         }
 
         internal static IPacketMsg GetPacketMsg( byte[] data )
@@ -519,5 +540,31 @@ namespace SteamKit2.Internal
             SessionToken = sessToken.Body.token;
         }
         #endregion
+    }
+
+
+    [Serializable]
+    public class ConnectionFailedException : Exception
+    {
+        public ConnectionFailedException()
+        {
+        }
+
+        public ConnectionFailedException(string message)
+            : base(message)
+        {
+        }
+
+        public ConnectionFailedException(string message, Exception inner)
+            : base(message, inner)
+        {
+        }
+
+        protected ConnectionFailedException(
+          SerializationInfo info,
+          StreamingContext context)
+            : base(info, context)
+        {
+        }
     }
 }

@@ -1,6 +1,8 @@
 ﻿using System;
-
+using System.Net;
+using System.Threading.Tasks;
 using SteamKit2;
+using SteamKit2.Internal;
 using SteamKit2.Unified.Internal;
 
 //
@@ -31,14 +33,15 @@ namespace Sample8_UnifiedMessages
 
         static string user, pass;
 
-        static JobID badgeRequest = JobID.Invalid;
 
-
-        static void Main( string[] args )
+        static void Main(string[] args)
         {
-            if ( args.Length < 2 )
+            DebugLog.Enabled = true;
+            DebugLog.AddListener((c, m) => Console.WriteLine($"[{c}]: {m}"));
+
+            if (args.Length < 2)
             {
-                Console.WriteLine( "Sample4: No username and password specified!" );
+                Console.WriteLine("Sample4: No username and password specified!");
                 return;
             }
 
@@ -49,7 +52,7 @@ namespace Sample8_UnifiedMessages
             // create our steamclient instance
             steamClient = new SteamClient();
             // create the callback manager which will route callbacks to function calls
-            manager = new CallbackManager( steamClient );
+            manager = new CallbackManager(steamClient);
 
             // get the steamuser handler, which is used for logging on after successfully connecting
             steamUser = steamClient.GetHandler<SteamUser>();
@@ -64,21 +67,34 @@ namespace Sample8_UnifiedMessages
             // register a few callbacks we're interested in
             // these are registered upon creation to a callback manager, which will then route the callbacks
             // to the functions specified
-            manager.Subscribe<SteamClient.ConnectedCallback>( OnConnected );
-            manager.Subscribe<SteamClient.DisconnectedCallback>( OnDisconnected );
+            manager.Subscribe<SteamClient.ConnectedCallback>(OnConnected);
+            manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
 
-            manager.Subscribe<SteamUser.LoggedOnCallback>( OnLoggedOn );
-            manager.Subscribe<SteamUser.LoggedOffCallback>( OnLoggedOff );
+            manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
+            manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
 
-            // we use the following callbacks for unified service responses
-            manager.Subscribe<SteamUnifiedMessages.ServiceMethodResponse>( OnMethodResponse );
+            Run().Wait(); ;
+        }
 
+        static async Task Run()
+        {
             isRunning = true;
 
             Console.WriteLine( "Connecting to Steam..." );
 
             // initiate the connection
-            steamClient.Connect();
+            EResult connectionResult;
+            try
+            {
+                connectionResult = await steamClient.ConnectAsync().ConfigureAwait(false);
+            }
+            catch (ConnectionFailedException ex)
+            {
+                Console.WriteLine("Failed: {0}", ex.Message);
+                return;
+            }
+
+            Console.WriteLine("Connected to steam! Result: {0}", connectionResult);
 
             // create our callback handling loop
             while ( isRunning )
@@ -114,32 +130,36 @@ namespace Sample8_UnifiedMessages
             isRunning = false;
         }
 
-        static void OnLoggedOn( SteamUser.LoggedOnCallback callback )
+        static void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
-            if ( callback.Result != EResult.OK )
+            if (callback.Result != EResult.OK)
             {
-                if ( callback.Result == EResult.AccountLogonDenied )
+                if (callback.Result == EResult.AccountLogonDenied)
                 {
                     // if we recieve AccountLogonDenied or one of it's flavors (AccountLogonDeniedNoMailSent, etc)
                     // then the account we're logging into is SteamGuard protected
                     // see sample 5 for how SteamGuard can be handled
 
-                    Console.WriteLine( "Unable to logon to Steam: This account is SteamGuard protected." );
+                    Console.WriteLine("Unable to logon to Steam: This account is SteamGuard protected.");
 
                     isRunning = false;
                     return;
                 }
 
-                Console.WriteLine( "Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult );
+                Console.WriteLine("Unable to logon to Steam: {0} / {1}", callback.Result, callback.ExtendedResult);
 
                 isRunning = false;
                 return;
             }
 
-            Console.WriteLine( "Successfully logged on!" );
+            Console.WriteLine("Successfully logged on!");
 
             // now that we're logged onto Steam, lets query the IPlayer service for our badge levels
+            GetAndPrintOurBadgeLevels();
+        }
 
+        static async void GetAndPrintOurBadgeLevels()
+        {
             // first, build our request object, these are autogenerated and can normally be found in the SteamKit2.Unified.Internal namespace
             CPlayer_GetGameBadgeLevels_Request req = new CPlayer_GetGameBadgeLevels_Request
             {
@@ -148,27 +168,13 @@ namespace Sample8_UnifiedMessages
             };
 
             // now lets send the request, this is done by building an expression tree with the IPlayer interface
-            badgeRequest = playerService.SendMessage( x => x.GetGameBadgeLevels( req ) );
+            var callback = await playerService.SendMessage( x => x.GetGameBadgeLevels( req ) );
 
             // alternatively, the request can be made using SteamUnifiedMessages directly, but then you must build the service request name manually
             // the name format is in the form of <Service>.<Method>#<Version>
-            steamUnifiedMessages.SendMessage( "Player.GetGameBadgeLevels#1", req );
-        }
-
-        static void OnLoggedOff( SteamUser.LoggedOffCallback callback )
-        {
-            Console.WriteLine( "Logged off of Steam: {0}", callback.Result );
-        }
-
-        static void OnMethodResponse( SteamUnifiedMessages.ServiceMethodResponse callback )
-        {
-            if ( callback.JobID != badgeRequest )
-            {
-                // always double check the jobid of the response to ensure you're matching to your original request
-                return;
-            }
-
-            // and check for success
+            var unusedTask = steamUnifiedMessages.SendMessage( "Player.GetGameBadgeLevels#1", req );
+            
+            // always check for success
             if ( callback.Result != EResult.OK )
             {
                 Console.WriteLine( $"Unified service request failed with {callback.Result}" );
@@ -188,10 +194,13 @@ namespace Sample8_UnifiedMessages
                 Console.WriteLine( $"Badge series {badge.series} is level {badge.level}" );
             }
 
-            badgeRequest = JobID.Invalid;
-
             // now that we've completed our task, lets log off
             steamUser.LogOff();
+        }
+
+        static void OnLoggedOff(SteamUser.LoggedOffCallback callback)
+        {
+            Console.WriteLine("Logged off of Steam: {0}", callback.Result);
         }
     }
 }

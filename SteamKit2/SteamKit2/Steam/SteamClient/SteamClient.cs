@@ -6,7 +6,6 @@
 
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Sockets;
@@ -353,6 +352,8 @@ namespace SteamKit2
             }
 
             PostCallback( new ConnectedCallback( encResult.Body ) );
+
+            OnConnected( encResult.Body.Result );
         }
 
         void HandleCMList( IPacketMsg packetMsg )
