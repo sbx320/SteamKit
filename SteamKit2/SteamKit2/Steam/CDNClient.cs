@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 
@@ -178,7 +179,7 @@ namespace SteamKit2
 
         static CDNClient()
         {
-            ServicePointManager.Expect100Continue = false;
+            
         }
 
 
@@ -343,7 +344,7 @@ namespace SteamKit2
                 data = string.Format( "sessionkey={0}&appticket={1}", WebHelpers.UrlEncode( cryptedSessKey ), WebHelpers.UrlEncode( encryptedAppTicket ) );
             }
 
-            KeyValue initKv = DoCommand( csServer, "initsession", data, WebRequestMethods.Http.Post );
+            KeyValue initKv = DoCommand( csServer, "initsession", data, HttpMethod.Post );
 
             sessionId = initKv["sessionid"].AsUnsignedLong();
             reqCounter = initKv[ "req-counter" ].AsLong();
@@ -378,7 +379,7 @@ namespace SteamKit2
                     data = string.Format( "appticket={0}", WebHelpers.UrlEncode( encryptedAppTicket ) );
                 }
 
-                DoCommand( connectedServer, "authdepot", data, WebRequestMethods.Http.Post, true );
+                DoCommand( connectedServer, "authdepot", data, HttpMethod.Post, true );
             }
 
             depotIds[depotid] = true;
@@ -503,13 +504,14 @@ namespace SteamKit2
             return string.Format( "http://{0}:{1}/{2}/{3}{4}", server.Host, server.Port, command, args, authtoken ?? "" );
         }
 
-        byte[] DoRawCommand( Server server, string command, string data = null, string method = WebRequestMethods.Http.Get, bool doAuth = false, string args = "", string authtoken = null )
+        byte[] DoRawCommand( Server server, string command, string data = null, HttpMethod method = null, bool doAuth = false, string args = "", string authtoken = null )
         {
             string url = BuildCommand( server, command, args, authtoken );
-            var webReq = HttpWebRequest.Create( url ) as HttpWebRequest;
+            var httpClient = new HttpClient();
+            HttpRequestMessage webReq = new HttpRequestMessage();
+            if(method == null)
+                method = HttpMethod.Get;
             webReq.Method = method;
-            webReq.Pipelined = true;
-            webReq.KeepAlive = true;
 
             if ( doAuth && server.Type == "CS" )
             {
@@ -533,40 +535,25 @@ namespace SteamKit2
                 string hexHash = Utils.EncodeHexString( shaHash );
                 string authHeader = string.Format( "sessionid={0};req-counter={1};hash={2};", sessionId, req, hexHash );
 
-                webReq.Headers[ "x-steam-auth" ] = authHeader;
+                webReq.Headers.Add("x-steam-auth", authHeader);
             }
 
-            if ( method == WebRequestMethods.Http.Post )
+            if ( method == HttpMethod.Post )
             {
-                byte[] payload = Encoding.UTF8.GetBytes( data );
-                webReq.ContentType = "application/x-www-form-urlencoded";
-                webReq.ContentLength = payload.Length;
-
-                using ( var reqStream = webReq.GetRequestStream() )
-                {
-                    reqStream.Write( payload, 0, payload.Length );
-                }
+                webReq.Content = new StringContent(data, Encoding.UTF8, "application/x-www-form-urlencoded");
             }
 
-
-            var result = webReq.BeginGetResponse( null, null );
-
-            if ( !result.AsyncWaitHandle.WaitOne( RequestTimeout ) )
+            var result = httpClient.SendAsync(webReq);
+               
+            if ( !result.Wait(RequestTimeout) )
             {
-                webReq.Abort();
+                throw new Exception();
             }
 
             try
             {
-                var response = webReq.EndGetResponse( result );
-
-                using ( var ms = new MemoryStream( ( int ) response.ContentLength ) )
-                {
-                    response.GetResponseStream().CopyTo( ms );
-                    response.Close();
-
-                    return ms.ToArray();
-                }
+                var response = result.Result;
+                return response.Content.ReadAsByteArrayAsync().Result;
             }
             catch ( Exception ex )
             {
@@ -575,7 +562,7 @@ namespace SteamKit2
             }
         }
 
-        KeyValue DoCommand( Server server, string command, string data = null, string method = WebRequestMethods.Http.Get, bool doAuth = false, string args = "", string authtoken = null )
+        KeyValue DoCommand( Server server, string command, string data = null, HttpMethod method = null, bool doAuth = false, string args = "", string authtoken = null )
         {
             byte[] resultData = DoRawCommand( server, command, data, method, doAuth, args, authtoken );
 

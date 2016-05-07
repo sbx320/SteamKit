@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Management;
+#if NET451
+    using System.Management;
+#endif
 using System.Net.NetworkInformation;
 using System.Text;
 using Microsoft.Win32;
@@ -21,6 +23,7 @@ namespace SteamKit2
     {
         public static MachineInfoProvider GetProvider()
         {
+        #if NET451
             switch ( Environment.OSVersion.Platform )
             {
                 case PlatformID.Win32NT:
@@ -37,7 +40,7 @@ namespace SteamKit2
                         return new LinuxInfoProvider();
                     }
             }
-
+        #endif
             return new DefaultInfoProvider();
         }
 
@@ -45,7 +48,7 @@ namespace SteamKit2
         public abstract byte[] GetMacAddress();
         public abstract byte[] GetDiskId();
     }
-
+    
     class DefaultInfoProvider : MachineInfoProvider
     {
         public override byte[] GetMachineGuid()
@@ -76,7 +79,8 @@ namespace SteamKit2
             return Encoding.UTF8.GetBytes( "SteamKit-DiskId" );
         }
     }
-
+   
+#if NET451
     class WindowsInfoProvider : DefaultInfoProvider
     {
         public override byte[] GetMachineGuid()
@@ -315,7 +319,7 @@ namespace SteamKit2
             return base.GetDiskId();
         }
     }
-
+#endif
     static class HardwareUtils
     {
         class MachineID : MessageObject

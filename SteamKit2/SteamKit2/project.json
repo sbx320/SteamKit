@@ -1,0 +1,41 @@
+{
+	"authors": [
+		"voided", "netshroud"
+	],
+    "version": "1.7.0",
+	"description": ".NET library that aims to interoperate with the Steam network.</",
+    "buildOptions": {
+        "emitEntryPoint": false
+    },
+
+    "dependencies": {
+		"protobuf-net": "2.1.0-alpha-1"
+    },
+
+    "frameworks": {
+		"net451" : {
+			"frameworkAssemblies": {
+        		"System.Net.Http": "4.0.0",
+				"System.Management": "4.0.0"
+      		}
+		},
+        "dnxcore50": {
+			"dependencies": {
+				"NETStandard.Library": "1.0.0-rc2-23811",
+				"System.Security.Cryptography.Algorithms": "4.1.0-rc2-24027",
+				"System.Security.Cryptography.Csp": "4.0.0-rc2-24027",
+				"System.Security.AccessControl": "4.0.0-rc2-24027",
+				"System.IO.Compression": "4.1.0-rc2-24027",
+				"System.Net.Http": "4.0.1-rc2-24027",
+				"System.Net.Sockets": "4.1.0-rc2-24027",
+				"System.Net.NetworkInformation": "4.1.0-rc2-24027",
+				"System.Net.Requests": "4.0.11-rc2-24027",
+				"System.Threading.Thread": "4.0.0-rc2-24027",
+				"System.Threading.ThreadPool": "4.0.10-rc2-24027",
+				"System.Reflection.TypeExtensions": "4.1.0-rc2-24027",
+				"System.Diagnostics.Process": "4.1.0-rc2-24027",
+				"System.Runtime.InteropServices.RuntimeInformation": "4.0.0-rc2-24027"
+			}		
+		}
+    }
+}

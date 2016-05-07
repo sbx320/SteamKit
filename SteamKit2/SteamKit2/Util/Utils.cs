@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Reflection;
 
 namespace SteamKit2
 {
@@ -37,8 +38,22 @@ namespace SteamKit2
             return bytes;
         }
 
+
         public static EOSType GetOSType()
         {
+        #if DNXCORE50
+            if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                return EOSType.WinUnknown;
+            }
+            if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                return EOSType.MacOSUnknown;
+            }
+            if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                return EOSType.LinuxUnknown;
+            }
+            
+            return EOSType.Unknown;
+        #elif NET451
             var osVer = Environment.OSVersion;
             var ver = osVer.Version;
 
@@ -147,7 +162,9 @@ namespace SteamKit2
                 default:
                     return EOSType.Unknown;
             }
+        #endif
         }
+
 
         public static bool IsRunningOnDarwin()
         {
@@ -181,10 +198,10 @@ namespace SteamKit2
         [DllImport ("libc")]
         static extern int uname (IntPtr buf);
 
-        public static T[] GetAttributes<T>( this Type type, bool inherit = false )
+        public static T[] GetAttributes2<T>( this Type type, bool inherit = false )
             where T : Attribute
         {
-            return type.GetCustomAttributes( typeof( T ), inherit ) as T[];
+            return type.GetTypeInfo().GetCustomAttributes( typeof( T ), inherit ) as T[];
         }
     }
 

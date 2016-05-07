@@ -5,8 +5,8 @@ using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -20,9 +20,6 @@ namespace SteamKit2
     {
         static WebAPI()
         {
-            // stop WebClient from inserting this header into requests
-            // the backend doesn't like it
-            ServicePointManager.Expect100Continue = false;
         }
 
         /// <summary>
@@ -63,7 +60,7 @@ namespace SteamKit2
             /// <exception cref="ArgumentNullException">The function name or request method provided were <c>null</c>.</exception>
             /// <exception cref="WebException">An network error occurred when performing the request.</exception>
             /// <exception cref="InvalidDataException">An error occured when parsing the response from the WebAPI.</exception>
-            public KeyValue Call( string func, int version = 1, Dictionary<string, string> args = null, string method = WebRequestMethods.Http.Get, bool secure = false )
+            public KeyValue Call( string func, int version = 1, Dictionary<string, string> args = null, string method = "GET", bool secure = false )
             {
                 var callTask = asyncInterface.Call( func, version, args, method, secure );
 
@@ -198,7 +195,7 @@ namespace SteamKit2
         /// </summary>
         public sealed class AsyncInterface : DynamicObject, IDisposable
         {
-            WebClient webClient;
+            HttpClient httpClient;
 
             string iface;
             string apiKey;
@@ -213,7 +210,7 @@ namespace SteamKit2
 
             internal AsyncInterface( string iface, string apiKey )
             {
-                webClient = new WebClient();
+                httpClient = new HttpClient();
 
                 this.iface = iface;
                 this.apiKey = apiKey;
@@ -232,7 +229,7 @@ namespace SteamKit2
             /// <exception cref="ArgumentNullException">The function name or request method provided were <c>null</c>.</exception>
             /// <exception cref="WebException">An network error occurred when performing the request.</exception>
             /// <exception cref="InvalidDataException">An error occured when parsing the response from the WebAPI.</exception>
-            public Task<KeyValue> Call( string func, int version = 1, Dictionary<string, string> args = null, string method = WebRequestMethods.Http.Get, bool secure = false )
+            public Task<KeyValue> Call( string func, int version = 1, Dictionary<string, string> args = null, string method = "GET", bool secure = false )
             {
                 if ( func == null )
                     throw new ArgumentNullException( "func" );
@@ -250,7 +247,7 @@ namespace SteamKit2
                 urlBuilder.Append( API_ROOT );
                 urlBuilder.AppendFormat( "/{0}/{1}/v{2}", iface, func, version );
 
-                bool isGet = method.Equals( WebRequestMethods.Http.Get, StringComparison.OrdinalIgnoreCase );
+                bool isGet = method.Equals( "GET", StringComparison.OrdinalIgnoreCase );
 
                 if ( isGet )
                 {
@@ -285,14 +282,15 @@ namespace SteamKit2
 
                     if ( isGet )
                     {
-                        data = webClient.DownloadData( urlBuilder.ToString() );
+                        data = httpClient.GetByteArrayAsync( urlBuilder.ToString() ).Result;
                     }
                     else
                     {
-                        byte[] postData = Encoding.Default.GetBytes( paramBuilder.ToString() );
-
-                        webClient.Headers.Add( HttpRequestHeader.ContentType, "application/x-www-form-urlencoded" );
-                        data = webClient.UploadData( urlBuilder.ToString(), postData );
+                        byte[] postData = Encoding.GetEncoding(0).GetBytes( paramBuilder.ToString() );
+                        
+                        HttpContent content = new FormUrlEncodedContent(args);
+                        var response = httpClient.PostAsync(urlBuilder.ToString(), content).Result;
+                        data = response.Content.ReadAsByteArrayAsync().Result;
                     }
 
                     KeyValue kv = new KeyValue();
@@ -333,7 +331,7 @@ namespace SteamKit2
             /// </summary>
             public void Dispose()
             {
-                webClient.Dispose();
+                httpClient.Dispose();
             }
 
             /// <summary>
@@ -382,7 +380,7 @@ namespace SteamKit2
 
                 var apiArgs = new Dictionary<string, string>();
 
-                string requestMethod = WebRequestMethods.Http.Get;
+                string requestMethod = "GET";
                 bool secure = false;
 
                 // convert named arguments into key value pairs

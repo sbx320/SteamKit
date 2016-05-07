@@ -18,7 +18,13 @@ namespace SevenZip.Buffer
 
 		public void SetStream(System.IO.Stream stream) { m_Stream = stream; }
 		public void FlushStream() { m_Stream.Flush(); }
-		public void CloseStream() { m_Stream.Close(); }
+		public void CloseStream() {
+		#if NET451 
+			m_Stream.Close();
+		#elif DNXCORE50
+			m_Stream.Dispose(); 
+		#endif
+		}
 		public void ReleaseStream() { m_Stream = null; }
 
 		public void Init()

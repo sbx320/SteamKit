@@ -65,7 +65,7 @@ namespace SteamKit2
         /// </summary>
         public static byte[] SHAHash( byte[] input )
         {
-            using ( var sha = new SHA1Managed() )
+            using ( var sha = SHA1.Create() )
             {
                 return sha.ComputeHash( input );
             }
@@ -76,7 +76,7 @@ namespace SteamKit2
         /// </summary>
         public static byte[] AESEncrypt( byte[] input, byte[] key, byte[] iv )
         {
-            using ( var aes = new RijndaelManaged() )
+            using ( var aes = Aes.Create() )
             {
                 aes.BlockSize = 128;
                 aes.KeySize = 128;
@@ -101,7 +101,7 @@ namespace SteamKit2
         /// </summary>
         public static byte[] AESDecrypt( byte[] input, byte[] key, byte[] iv )
         {
-            using ( var aes = new RijndaelManaged() )
+            using ( var aes = Aes.Create() )
             {
                 aes.BlockSize = 128;
                 aes.KeySize = 128;
@@ -133,7 +133,7 @@ namespace SteamKit2
         {
             DebugLog.Assert( key.Length == 32, "CryptoHelper", "SymmetricEncrypt used with non 32 byte key!" );
 
-            using ( var aes = new RijndaelManaged() )
+            using ( var aes = Aes.Create() )
             {
                 aes.BlockSize = 128;
                 aes.KeySize = 256;
@@ -192,13 +192,22 @@ namespace SteamKit2
             var random = GenerateRandomBlock( 3 );
             Array.Copy( random, 0, iv, iv.Length - random.Length, random.Length );
 
+        #if NET451
             using ( var hmac = new HMACSHA1( hmacSecret ) )
             {
                 hmac.TransformBlock( random, 0, random.Length, null, 0 );
                 hmac.TransformFinalBlock( input, 0, input.Length );
                 Array.Copy( hmac.Hash, iv, iv.Length - random.Length );
             }
+        #elif DNXCORE50
+            using(var incremental = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA1, hmacSecret)) {
+                incremental.AppendData(random);
+                incremental.AppendData(input);
+                var hmacBytes = incremental.GetHashAndReset();
+                Array.Copy( hmacBytes, iv, iv.Length - random.Length );
+            }
             
+        #endif
             return SymmetricEncryptWithIV( input, key, iv );
         }
 
@@ -225,6 +234,8 @@ namespace SteamKit2
 
             // validate HMAC
             byte[] hmacBytes;
+            
+        #if NET451
             using ( var hmac = new HMACSHA1( hmacSecret ) )
             {
                 hmac.TransformBlock( iv, iv.Length - 3, 3, null, 0 );
@@ -232,6 +243,15 @@ namespace SteamKit2
 
                 hmacBytes = hmac.Hash;
             }
+        #elif DNXCORE50
+            using(var incremental = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA1, hmacSecret)) {
+                incremental.AppendData(iv, iv.Length -3, 3);
+                incremental.AppendData(plaintextData);
+                hmacBytes = incremental.GetHashAndReset();
+            }
+        #endif 
+            
+            
 
             if ( !hmacBytes.Take( iv.Length - 3 ).SequenceEqual( iv.Take( iv.Length - 3 ) ) )
             {
@@ -248,7 +268,7 @@ namespace SteamKit2
         {
             DebugLog.Assert( key.Length == 32, "CryptoHelper", "SymmetricDecrypt used with non 32 byte key!" );
 
-            using ( var aes = new RijndaelManaged() )
+            using ( var aes = Aes.Create() )
             {
                 aes.BlockSize = 128;
                 aes.KeySize = 256;
@@ -298,7 +318,7 @@ namespace SteamKit2
         public static byte[] VerifyAndDecryptPassword( byte[] input, string password )
         {
             byte[] key, hash;
-            using( SHA256 sha256 = SHA256Managed.Create() )
+            using( SHA256 sha256 = SHA256.Create() )
             {
                 byte[] password_bytes = Encoding.UTF8.GetBytes( password );
                 key = sha256.ComputeHash( password_bytes );
@@ -351,7 +371,7 @@ namespace SteamKit2
         /// </summary>
         public static byte[] GenerateRandomBlock( int size )
         {
-            using ( var rng = new RNGCryptoServiceProvider() )
+            using ( var rng = RandomNumberGenerator.Create() )
             {
                 byte[] block = new byte[ size ];
 

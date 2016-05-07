@@ -147,14 +147,25 @@ namespace SteamKit2
                 Release( userRequestedDisconnect: true );
                 return;
             }
-
-            var asyncResult = socket.BeginConnect(destination, null, null);
-
-            if (WaitHandle.WaitAny(new WaitHandle[] { asyncResult.AsyncWaitHandle, cancellationToken.Token.WaitHandle }, timeout) == 0)
-            {
+            
+            var asyncWaitHandle = new ManualResetEvent(false);
+                        
+            SocketAsyncEventArgs e = new SocketAsyncEventArgs();
+            e.RemoteEndPoint = destination;
+            e.Completed += (s, ev) => {
+                asyncWaitHandle.Set();
+            };
+            
+            
+            if(!socket.ConnectAsync(e)) {
+                ConnectCompleted(false);
+                return;
+            }
+            
+            if (WaitHandle.WaitAny(new WaitHandle[] { asyncWaitHandle, cancellationToken.Token.WaitHandle }, timeout) == 0)
+            {   
                 try
                 {
-                    socket.EndConnect(asyncResult);
                     ConnectCompleted(true);
                 }
                 catch (Exception ex)

@@ -46,9 +46,12 @@ namespace SevenZip.Compression.RangeCoder
 			Stream.Flush();
 		}
 
-		public void CloseStream()
-		{
+		public void CloseStream() {
+		#if NET451 
 			Stream.Close();
+		#elif DNXCORE50
+			Stream.Dispose(); 
+		#endif
 		}
 
 		public void Encode(uint start, uint size, uint total)
@@ -146,7 +149,11 @@ namespace SevenZip.Compression.RangeCoder
 
 		public void CloseStream()
 		{
+		#if NET451 
 			Stream.Close();
+		#elif DNXCORE50
+			Stream.Dispose(); 
+		#endif
 		}
 
 		public void Normalize()
