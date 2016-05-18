@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace SteamKit2
 {
@@ -22,7 +23,11 @@ namespace SteamKit2
     /// </summary>
     public class RSACrypto : IDisposable
     {
-        RSACryptoServiceProvider rsa;
+	#if NET451
+		RSACryptoServiceProvider rsa;
+	#else 
+        RSA rsa;
+	#endif
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SteamKit2.RSACrypto"/> class.
@@ -31,8 +36,11 @@ namespace SteamKit2
         public RSACrypto( byte[] key )
         {
             AsnKeyParser keyParser = new AsnKeyParser( key );
-
+		#if NET451
             rsa = new RSACryptoServiceProvider();
+		#else
+			rsa = RSA.Create();
+		#endif
             rsa.ImportParameters( keyParser.ParseRSAPublicKey() );
         }
 
@@ -43,7 +51,11 @@ namespace SteamKit2
         /// <param name="input">The input to encrypt.</param>
         public byte[] Encrypt( byte[] input )
         {
-            return rsa.Encrypt( input, true );
+		#if NET451 
+			return rsa.Encrypt( input, true);
+		#else 
+            return rsa.Encrypt( input, RSAEncryptionPadding.OaepSHA1 );
+		#endif
         }
 
         /// <summary>
@@ -199,7 +211,7 @@ namespace SteamKit2
                 hmac.TransformFinalBlock( input, 0, input.Length );
                 Array.Copy( hmac.Hash, iv, iv.Length - random.Length );
             }
-        #elif DNXCORE50
+        #else
             using(var incremental = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA1, hmacSecret)) {
                 incremental.AppendData(random);
                 incremental.AppendData(input);
@@ -243,7 +255,7 @@ namespace SteamKit2
 
                 hmacBytes = hmac.Hash;
             }
-        #elif DNXCORE50
+        #else
             using(var incremental = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA1, hmacSecret)) {
                 incremental.AppendData(iv, iv.Length -3, 3);
                 incremental.AppendData(plaintextData);

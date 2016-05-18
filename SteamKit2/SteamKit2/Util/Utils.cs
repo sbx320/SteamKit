@@ -41,19 +41,7 @@ namespace SteamKit2
 
         public static EOSType GetOSType()
         {
-        #if DNXCORE50
-            if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                return EOSType.WinUnknown;
-            }
-            if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                return EOSType.MacOSUnknown;
-            }
-            if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                return EOSType.LinuxUnknown;
-            }
-            
-            return EOSType.Unknown;
-        #elif NET451
+        #if NET451
             var osVer = Environment.OSVersion;
             var ver = osVer.Version;
 
@@ -162,6 +150,18 @@ namespace SteamKit2
                 default:
                     return EOSType.Unknown;
             }
+		#else 
+			if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                return EOSType.WinUnknown;
+            }
+            if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                return EOSType.MacOSUnknown;
+            }
+            if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                return EOSType.LinuxUnknown;
+            }
+            
+            return EOSType.Unknown;
         #endif
         }
 

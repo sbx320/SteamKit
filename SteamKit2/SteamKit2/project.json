@@ -2,7 +2,7 @@
 	"authors": [
 		"voided", "netshroud"
 	],
-    "version": "1.7.0",
+    "version": "1.7.0-rc2-final",
 	"description": ".NET library that aims to interoperate with the Steam network.</",
     "buildOptions": {
         "emitEntryPoint": false
@@ -19,11 +19,14 @@
 				"System.Management": "4.0.0"
       		}
 		},
-        "dnxcore50": {
+        "netcoreapp1.0": {
+			"imports": "dnxcore50",
 			"dependencies": {
-				"NETStandard.Library": "1.0.0-rc2-23811",
+				"NETStandard.Library": "1.5.0-rc2-24027",
 				"System.Security.Cryptography.Algorithms": "4.1.0-rc2-24027",
 				"System.Security.Cryptography.Csp": "4.0.0-rc2-24027",
+				"System.Security.Cryptography.Cng": "4.1.0-rc2-24027",
+				"System.Security.Cryptography.OpenSsl": "4.0.0-rc2-24027",
 				"System.Security.AccessControl": "4.0.0-rc2-24027",
 				"System.IO.Compression": "4.1.0-rc2-24027",
 				"System.Net.Http": "4.0.1-rc2-24027",

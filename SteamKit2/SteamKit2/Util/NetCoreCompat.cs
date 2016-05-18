@@ -1,4 +1,4 @@
-#if DNXCORE50
+#if !NET451
 using System.Net.Sockets;
 using System.IO;
 
