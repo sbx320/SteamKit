@@ -23,10 +23,10 @@ namespace SteamKit2
     /// </summary>
     public class RSACrypto : IDisposable
     {
-	#if NET451
+	#if NETSTANDARD1_6
+	    RSA rsa;
+	#else
 		RSACryptoServiceProvider rsa;
-	#else 
-        RSA rsa;
 	#endif
 
         /// <summary>
@@ -36,10 +36,10 @@ namespace SteamKit2
         public RSACrypto( byte[] key )
         {
             AsnKeyParser keyParser = new AsnKeyParser( key );
-		#if NET451
-            rsa = new RSACryptoServiceProvider();
-		#else
+		#if NETSTANDARD1_6
 			rsa = RSA.Create();
+		#else
+			rsa = new RSACryptoServiceProvider();
 		#endif
             rsa.ImportParameters( keyParser.ParseRSAPublicKey() );
         }
@@ -51,10 +51,10 @@ namespace SteamKit2
         /// <param name="input">The input to encrypt.</param>
         public byte[] Encrypt( byte[] input )
         {
-		#if NET451 
-			return rsa.Encrypt( input, true);
+		#if NETSTANDARD1_6
+			return rsa.Encrypt( input, RSAEncryptionPadding.OaepSHA1 );
 		#else 
-            return rsa.Encrypt( input, RSAEncryptionPadding.OaepSHA1 );
+            return rsa.Encrypt( input, true);
 		#endif
         }
 
@@ -204,21 +204,20 @@ namespace SteamKit2
             var random = GenerateRandomBlock( 3 );
             Array.Copy( random, 0, iv, iv.Length - random.Length, random.Length );
 
-        #if NET451
-            using ( var hmac = new HMACSHA1( hmacSecret ) )
-            {
-                hmac.TransformBlock( random, 0, random.Length, null, 0 );
-                hmac.TransformFinalBlock( input, 0, input.Length );
-                Array.Copy( hmac.Hash, iv, iv.Length - random.Length );
-            }
-        #else
+        #if NETSTANDARD1_6
             using(var incremental = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA1, hmacSecret)) {
                 incremental.AppendData(random);
                 incremental.AppendData(input);
                 var hmacBytes = incremental.GetHashAndReset();
                 Array.Copy( hmacBytes, iv, iv.Length - random.Length );
             }
-            
+        #else
+            using ( var hmac = new HMACSHA1( hmacSecret ) )
+            {
+                hmac.TransformBlock( random, 0, random.Length, null, 0 );
+                hmac.TransformFinalBlock( input, 0, input.Length );
+                Array.Copy( hmac.Hash, iv, iv.Length - random.Length );
+            }
         #endif
             return SymmetricEncryptWithIV( input, key, iv );
         }
@@ -246,25 +245,20 @@ namespace SteamKit2
 
             // validate HMAC
             byte[] hmacBytes;
-            
-        #if NET451
-            using ( var hmac = new HMACSHA1( hmacSecret ) )
-            {
-                hmac.TransformBlock( iv, iv.Length - 3, 3, null, 0 );
-                hmac.TransformFinalBlock( plaintextData, 0, plaintextData.Length );
-
-                hmacBytes = hmac.Hash;
-            }
-        #else
-            using(var incremental = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA1, hmacSecret)) {
+        #if NETSTANDARD1_6
+			using(var incremental = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA1, hmacSecret)) {
                 incremental.AppendData(iv, iv.Length -3, 3);
                 incremental.AppendData(plaintextData);
                 hmacBytes = incremental.GetHashAndReset();
             }
+		#else
+            using ( var hmac = new HMACSHA1( hmacSecret ) ) {
+                hmac.TransformBlock( iv, iv.Length - 3, 3, null, 0 );
+                hmac.TransformFinalBlock( plaintextData, 0, plaintextData.Length );
+                hmacBytes = hmac.Hash;
+            }
         #endif 
             
-            
-
             if ( !hmacBytes.Take( iv.Length - 3 ).SequenceEqual( iv.Take( iv.Length - 3 ) ) )
             {
                 throw new CryptographicException( string.Format( CultureInfo.InvariantCulture, "{0} was unable to decrypt packet: HMAC from server did not match computed HMAC.", nameof(NetFilterEncryption) ) );

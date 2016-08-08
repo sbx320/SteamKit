@@ -22,7 +22,11 @@ namespace SteamKit2.Discovery
         /// </summary>
         public IsolatedStorageServerListProvider()
         {
+		#if NETSTANDARD1_6
+			isolatedStorage = IsolatedStorageFile.GetUserStoreForApplication();
+		#else
             isolatedStorage = IsolatedStorageFile.GetUserStoreForAssembly();
+		#endif
         }
 
         /// <summary>

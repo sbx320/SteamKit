@@ -9,7 +9,7 @@
     },
 
     "dependencies": {
-		"protobuf-net": "2.1.0-alpha-1"
+		"protobuf-net": "2.1.0"
     },
 
     "frameworks": {
@@ -19,25 +19,26 @@
 				"System.Management": "4.0.0"
       		}
 		},
-        "netcoreapp1.0": {
-			"imports": "dnxcore50",
+        "netstandard1.6": {
 			"dependencies": {
-				"NETStandard.Library": "1.5.0-rc2-24027",
-				"System.Security.Cryptography.Algorithms": "4.1.0-rc2-24027",
-				"System.Security.Cryptography.Csp": "4.0.0-rc2-24027",
-				"System.Security.Cryptography.Cng": "4.1.0-rc2-24027",
-				"System.Security.Cryptography.OpenSsl": "4.0.0-rc2-24027",
-				"System.Security.AccessControl": "4.0.0-rc2-24027",
-				"System.IO.Compression": "4.1.0-rc2-24027",
-				"System.Net.Http": "4.0.1-rc2-24027",
-				"System.Net.Sockets": "4.1.0-rc2-24027",
-				"System.Net.NetworkInformation": "4.1.0-rc2-24027",
-				"System.Net.Requests": "4.0.11-rc2-24027",
-				"System.Threading.Thread": "4.0.0-rc2-24027",
-				"System.Threading.ThreadPool": "4.0.10-rc2-24027",
-				"System.Reflection.TypeExtensions": "4.1.0-rc2-24027",
-				"System.Diagnostics.Process": "4.1.0-rc2-24027",
-				"System.Runtime.InteropServices.RuntimeInformation": "4.0.0-rc2-24027"
+				"NETStandard.Library": "1.6.0",
+				"System.Security.Cryptography.Algorithms": "4.2.0",
+				"System.Security.Cryptography.Csp": "4.0.0",
+				"System.Security.Cryptography.Cng": "4.2.0",
+				"System.Security.Cryptography.OpenSsl": "4.0.0",
+				"System.Security.AccessControl": "4.0.0",
+				"System.IO.Compression": "4.1.0",
+				"System.IO.IsolatedStorage": "4.0.1",
+				"System.Net.Http": "4.1.0",
+				"System.Net.NameResolution": "4.0.0",
+				"System.Net.Sockets": "4.1.0",
+				"System.Net.NetworkInformation": "4.1.0",
+				"System.Net.Requests": "4.0.11",
+				"System.Threading.Thread": "4.0.0",
+				"System.Threading.ThreadPool": "4.0.10",
+				"System.Reflection.TypeExtensions": "4.1.0",
+				"System.Diagnostics.Process": "4.1.0",
+				"System.Runtime.InteropServices.RuntimeInformation": "4.0.0"
 			}		
 		}
     }

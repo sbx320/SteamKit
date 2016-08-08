@@ -259,10 +259,10 @@ namespace SteamKit2
             }
             catch ( SocketException e )
             {
-            #if NET451
-                DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.ErrorCode);
+            #if NETSTANDARD1_6
+			    DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.SocketErrorCode); 
             #else
-                DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.SocketErrorCode); 
+				DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.ErrorCode);
             #endif 
                 state = (int)State.Disconnected;
                 return;
@@ -457,10 +457,10 @@ namespace SteamKit2
                 }
                 catch ( SocketException e )
                 {
-                #if NET451
-                    DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.ErrorCode);
-                #else
+                #if NETSTANDARD1_6
                     DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.SocketErrorCode);
+                #else
+					DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.ErrorCode);
                 #endif 
 
                     state = (int)State.Disconnected;
