@@ -260,13 +260,8 @@ namespace SteamKit2
             catch ( SocketException e )
             {
             #if NET451
-<<<<<<< HEAD
-                DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.ErrorCode);
-            #elif DNXCORE50
-=======
                 DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.ErrorCode);
             #else
->>>>>>> Fixed Linux Crypto, Fixed incorrect OS detection
                 DebugLog.WriteLine("UdpConnection", "Critical socket failure: " + e.SocketErrorCode); 
             #endif 
                 state = (int)State.Disconnected;
