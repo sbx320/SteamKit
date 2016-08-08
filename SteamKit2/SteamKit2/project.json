@@ -2,7 +2,7 @@
 	"authors": [
 		"voided", "netshroud"
 	],
-    "version": "1.7.0-rc2-final",
+    "version": "1.8.0-sbx320",
 	"description": ".NET library that aims to interoperate with the Steam network.</",
     "buildOptions": {
         "emitEntryPoint": false
